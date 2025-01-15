@@ -1,0 +1,50 @@
+name: Build Aseprite on Windows
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Install dependencies
+      run: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+        choco install ninja -y
+
+    - name: Create build directory
+      run: mkdir build
+
+    - name: Configure CMake
+      working-directory: ./build
+      run: cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release ..
+
+    - name: Build Aseprite
+      working-directory: ./build
+      run: ninja
+
+    - name: Archive the executable
+      run: |
+        mkdir dist
+        cp build/bin/aseprite.exe dist/
+        7z a aseprite.zip ./dist/*
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: aseprite
+        path: aseprite.zip
