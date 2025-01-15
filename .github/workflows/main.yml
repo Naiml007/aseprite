@@ -1,4 +1,4 @@
-name: Build Aseprite on Windows
+name: Build Aseprite
 
 on:
   push:
@@ -13,38 +13,40 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        submodules: recursive
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-    - name: Set up MSVC
-      uses: ilammy/msvc-dev-cmd@v1
+      - name: Set up Visual Studio
+        uses: actions/setup-msbuild@v1
 
-    - name: Install dependencies
-      run: |
-        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
-        choco install ninja -y
+      - name: Install CMake
+        uses: actions/setup-cmake@v3
+        with:
+          cmake-version: '3.20.0'
 
-    - name: Create build directory
-      run: mkdir build
+      - name: Install Ninja
+        uses: actions/setup-ninja@v1
 
-    - name: Configure CMake
-      working-directory: ./build
-      run: cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release ..
+      - name: Install Skia dependencies
+        run: |
+          # Commands to download and set up Skia
+          # Ensure SKIA_DIR and SKIA_LIBRARY_DIR are set appropriately
 
-    - name: Build Aseprite
-      working-directory: ./build
-      run: ninja
+      - name: Configure build
+        run: |
+          cmake -B build -G Ninja ^
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo ^
+            -DLAF_BACKEND=skia ^
+            -DSKIA_DIR=%SKIA_DIR% ^
+            -DSKIA_LIBRARY_DIR=%SKIA_LIBRARY_DIR%
 
-    - name: Archive the executable
-      run: |
-        mkdir dist
-        cp build/bin/aseprite.exe dist/
-        7z a aseprite.zip ./dist/*
+      - name: Build Aseprite
+        run: cmake --build build --target aseprite
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: aseprite
-        path: aseprite.zip
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: aseprite-windows
+          path: build/bin/aseprite.exe
